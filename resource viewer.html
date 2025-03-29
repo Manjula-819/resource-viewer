@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FHIR Resource Tabular Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .light {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .dark {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+        .dark .container {
+            background-color: #2a2a2a;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1a73e8;
+        }
+        .dark h1 {
+            color: #8ab4f8;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        input, select, button {
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        .dark input, .dark select, .dark button {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border-color: #555;
+        }
+        .dark input:focus, .dark select:focus {
+            border-color: #8ab4f8;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .dark button {
+            background-color: #8ab4f8;
+            color: #1a1a1a;
+        }
+        .dark button:hover {
+            background-color: #6a9bf4;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .dark button:disabled {
+            background-color: #555;
+        }
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            background-color: #f0f0f0;
+            border-radius: 20px;
+            padding: 2px;
+            width: 60px;
+            height: 28px;
+            cursor: pointer;
+            position: relative;
+            margin-left: auto;
+        }
+        .dark .theme-toggle {
+            background-color: #444;
+        }
+        .theme-toggle::before {
+            content: '';
+            width: 24px;
+            height: 24px;
+            background-color: #1a73e8;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .dark .theme-toggle::before {
+            transform: translateX(32px);
+            background-color: #8ab4f8;
+        }
+        .theme-toggle span {
+            position: absolute;
+            font-size: 12px;
+            color: #666;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .theme-toggle .sun {
+            left: 8px;
+        }
+        .theme-toggle .moon {
+            right: 8px;
+        }
+        .dark .theme-toggle span {
+            color: #aaa;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            position: relative;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .dark .table-container {
+            border-color: #555;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        th:hover {
+            background-color: #e9ecef;
+        }
+        .dark th {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+        .dark th:hover {
+            background-color: #4a4a4a;
+        }
+        .dark td {
+            border-color: #555;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .dark tr:nth-child(even) {
+            background-color: #2f2f2f;
+        }
+        .pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .pagination span {
+            font-size: 14px;
+            color: #666;
+        }
+        .dark .pagination span {
+            color: #aaa;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .dark .spinner {
+            border: 4px solid #444;
+            border-top: 4px solid #8ab4f8;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @media (max-width: 600px) {
+            .table-container {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 6px 8px;
+            }
+            .controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+            input, select {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            button {
+                width: 100%;
+                padding: 8px;
+            }
+            .theme-toggle {
+                width: 100%;
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="light">
+    <div class="container">
+        <h1>FHIR Resource Tabular Viewer</h1>
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Search by name or ID" oninput="updateTable()">
+            <select id="statusFilter" onchange="updateTable()">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+            <button onclick="exportToCSV()">Export to CSV</button>
+            <div class="theme-toggle" onclick="toggleTheme()">
+                <span class="sun">☀️</span>
+                <span class="moon">🌙</span>
+            </div>
+        </div>
+        <div class="table-container" id="tableContainer">
+            <div id="spinner" class="spinner" style="display: none;"></div>
+            <table id="patientTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('id')">ID</th>
+                        <th onclick="sortTable('given_name')">Given Name</th>
+                        <th onclick="sortTable('family_name')">Family Name</th>
+                        <th onclick="sortTable('birth_date')">Birth Date</th>
+                        <th onclick="sortTable('gender')">Gender</th>
+                        <th onclick="sortTable('status')">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="patientTableBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination">
+            <button onclick="changePage(-1)" id="prevButton">Previous</button>
+            <span id="pageInfo"></span>
+            <button onclick="changePage(1)" id="nextButton">Next</button>
+        </div>
+    </div>
+
+    <script>
+        // Simulated FHIR Patient data
+        const patients = [
+            { id: "12345", given_name: "John", family_name: "Doe", birth_date: "1990-05-15", gender: "male", status: "active" },
+            { id: "67890", given_name: "Jane", family_name: "Smith", birth_date: "1985-03-22", gender: "female", status: "inactive" },
+            { id: "11223", given_name: "Alice", family_name: "Johnson", birth_date: "1992-07-10", gender: "female", status: "active" },
+            { id: "44556", given_name: "Bob", family_name: "Brown", birth_date: "1980-11-30", gender: "male", status: "active" },
+            { id: "78901", given_name: "Charlie", family_name: "Davis", birth_date: "1995-01-25", gender: "male", status: "inactive" },
+            { id: "23456", given_name: "Emma", family_name: "Wilson", birth_date: "1988-09-12", gender: "female", status: "active" },
+            { id: "56789", given_name: "David", family_name: "Miller", birth_date: "1975-06-18", gender: "male", status: "inactive" },
+            { id: "89012", given_name: "Grace", family_name: "Taylor", birth_date: "1993-04-05", gender: "female", status: "active" },
+            { id: "34567", given_name: "Henry", family_name: "Moore", birth_date: "1982-12-20", gender: "male", status: "active" },
+            { id: "90123", given_name: "Isabella", family_name: "Clark", birth_date: "1990-08-15", gender: "female", status: "inactive" },
+            { id: "45678", given_name: "James", family_name: "Lewis", birth_date: "1987-02-28", gender: "male", status: "active" },
+            { id: "01234", given_name: "Kelly", family_name: "Walker", birth_date: "1994-10-10", gender: "female", status: "active" },
+            { id: "56790", given_name: "Liam", family_name: "Hall", birth_date: "1983-03-15", gender: "male", status: "inactive" },
+            { id: "12356", given_name: "Mia", family_name: "Allen", birth_date: "1991-07-22", gender: "female", status: "active" },
+            { id: "67812", given_name: "Noah", family_name: "Young", birth_date: "1989-05-30", gender: "male", status: "active" }
+        ];
+
+        let currentPage = 1;
+        const rowsPerPage = 5;
+        let sortField = '';
+        let sortOrder = 'asc';
+        let filteredData = patients;
+
+        // Simulate data fetching with a delay and potential error
+        function fetchData() {
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+            setTimeout(() => {
+                spinner.style.display = 'none';
+                // Simulate an error by uncommenting the line below
+                // throw new Error("Failed to fetch data. Please try again.");
+                updateTable();
+            }, 1000);
+        }
+
+        // Update table based on search, filter, sort, and pagination
+        function updateTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            // Filter data
+            filteredData = patients.filter(patient =>
+                (searchTerm === '' || patient.given_name.toLowerCase().includes(searchTerm) || patient.id.toLowerCase().includes(searchTerm)) &&
+                (statusFilter === '' || patient.status === statusFilter)
+            );
+
+            // Sort data
+            if (sortField) {
+                filteredData.sort((a, b) => {
+                    const valA = a[sortField].toString().toLowerCase();
+                    const valB = b[sortField].toString().toLowerCase();
+                    if (sortOrder === 'asc') {
+                        return valA.localeCompare(valB);
+                    }
+                    return valB.localeCompare(valA);
+                });
+            }
+
+            // Paginate data
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const paginatedData = filteredData.slice(start, end);
+
+            // Update table
+            const tbody = document.getElementById('patientTableBody');
+            tbody.innerHTML = '';
+            paginatedData.forEach(patient => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${patient.id}</td>
+                    <td>${patient.given_name}</td>
+                    <td>${patient.family_name}</td>
+                    <td>${patient.birth_date}</td>
+                    <td>${patient.gender}</td>
+                    <td>${patient.status}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update pagination
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevButton').disabled = currentPage === 1;
+            document.getElementById('nextButton').disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        // Sort table by column
+        function sortTable(field) {
+            if (sortField === field) {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortOrder = 'asc';
+            }
+            updateTable();
+        }
+
+        // Change page for pagination
+        function changePage(direction) {
+            currentPage += direction;
+            updateTable();
+        }
+
+        // Export table to CSV
+        function exportToCSV() {
+            const headers = ["ID", "Given Name", "Family Name", "Birth Date", "Gender", "Status"];
+            const rows = filteredData.map(row => [
+                row.id, row.given_name, row.family_name, row.birth_date, row.gender, row.status
+            ]);
+            const csv = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "fhir_patients.csv";
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Toggle light/dark mode
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('light')) {
+                body.classList.remove('light');
+                body.classList.add('dark');
+            } else {
+                body.classList.remove('dark');
+                body.classList.add('light');
+            }
+        }
+
+        // Error handling for data fetch
+        try {
+            fetchData();
+        } catch (error) {
+            document.getElementById('spinner').style.display = 'none';
+            alert(`Error: ${error.message}`);
+        }
+    </script>
+</body>
+</html>
